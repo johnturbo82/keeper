@@ -1,0 +1,5 @@
+{
+    "keeper_file": "keeper.json",
+    "contracted_working_hours": 8,
+    "default_pause_length": 0.5
+}

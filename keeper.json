@@ -1,0 +1,20 @@
+{
+    "bookings": {
+        "2024-09-14": {
+            "checkin_timestamp": "2024-09-14T11:03:00",
+            "checkout_timestamp": "2024-09-14T12:06:00",
+            "pause": 0.5,
+            "productive_time": 0.5,
+            "category": "MOBILE",
+            "description": null
+        },
+        "2024-09-13": {
+            "checkin_timestamp": "2024-09-13T07:40:00",
+            "checkout_timestamp": "2024-09-13T15:20:00",
+            "pause": 0.5,
+            "productive_time": 7.25,
+            "category": "MOBILE",
+            "description": null
+        }
+    }
+}
