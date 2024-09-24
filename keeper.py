@@ -8,10 +8,7 @@ import datetime
 import os
 
 import marshmallow_dataclass
-import pytz
 from tabulate import tabulate
-
-tz = pytz.timezone("Europe/Berlin")
 
 
 class BookingCategory(str, enum.Enum):
@@ -47,7 +44,7 @@ class Keeper:
         self.__contracted_working_hours = self.__config.get("contracted_working_hours", 8)
         self.__default_pause_length = self.__config.get("default_pause_length", 0.5)
         self.__load_data()
-        self.__day_to_work_on = datetime.datetime.now(tz)
+        self.__day_to_work_on = datetime.datetime.now().replace(tzinfo=None)
         self.__process_args(args)
 
     def __load_config(self) -> None:
