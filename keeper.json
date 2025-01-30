@@ -15,6 +15,14 @@
             "productive_time": 7.25,
             "category": "MOBILE",
             "description": null
+        },
+        "2024-09-24": {
+            "checkin_timestamp": "2024-09-24T07:26:08.358565",
+            "checkout_timestamp": null,
+            "pause": 0.5,
+            "productive_time": 0.0,
+            "category": "MOBILE",
+            "description": null
         }
     }
 }
