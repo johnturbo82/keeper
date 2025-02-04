@@ -13,11 +13,12 @@ from tabulate import tabulate
 
 
 class BookingCategory(str, enum.Enum):
-    VACATION = "VACATION"
-    SICK = "SICK"
+    FLEXI = "FLEXI"
     HOLIDAY = "HOLIDAY"
     MOBILE = "MOBILE"
     OFFICE = "OFFICE"
+    SICK = "SICK"
+    VACATION = "VACATION"
 
 
 @dataclasses.dataclass
@@ -79,6 +80,9 @@ class Keeper:
         parameter = False
         if args.date:
             self.__day_to_work_on = datetime.datetime.fromisoformat(args.date)
+        if args.description:
+            parameter = True
+            self.__set_description(args.description)
         if args.checkin:
             parameter = True
             self.__check(True, args.checkin)
@@ -88,18 +92,22 @@ class Keeper:
         if args.today:
             parameter = True
             self.print_table(self.generate_day_keys(1))
-        if args.week:
-            parameter = True
-            self.print_table(self.generate_day_keys(7))
-        if args.month:
-            parameter = True
-            self.print_table(self.generate_day_keys(30))
         if args.category:
             parameter = True
             if args.category in BookingCategory:
                 self.__category(BookingCategory(args.category))
             else:
                 print(f"Unknown value: {args.category}")
+        if args.list is not None:
+            parameter = True
+            days = args.list if args.list else 7
+            self.print_table(self.generate_day_keys(days))
+        if args.pause is not None:
+            parameter = True
+            self.__set_pause(args.pause)
+        if args.remove:
+            parameter = True
+            self.__remove_booking(args.remove)
         if not parameter:
             print("No parameter set. Please use '--help' for more information.")
 
@@ -124,15 +132,54 @@ class Keeper:
         self.__save_data()
         self.print_table([key])
 
+    def __set_description(self, description: str) -> None:
+        key = self.__day_to_work_on.strftime("%Y-%m-%d")
+        booking = Booking()
+        if self.__data.get(key):
+            booking = self.__data[key]
+        booking.description = description
+        self.__data[key] = booking
+        self.__save_data()
+        self.print_table([key])
+
     def __category(self, category: BookingCategory) -> None:
         key = self.__day_to_work_on.strftime("%Y-%m-%d")
         booking = Booking()
         if self.__data.get(key):
             booking = self.__data[key]
         booking.category = category
+        if category == BookingCategory.FLEXI:
+            booking.productive_time = - self.__contracted_working_hours
+            booking.checkin_timestamp = None
+            booking.checkout_timestamp = None
+            booking.pause = 0
+        if category == BookingCategory.HOLIDAY or category == BookingCategory.VACATION or category == BookingCategory.SICK:
+            booking.productive_time = 0
+            booking.checkin_timestamp = None
+            booking.checkout_timestamp = None
+            booking.pause = 0
         self.__data[key] = booking
         self.__save_data()
         self.print_table([key])
+
+    def __set_pause(self, pause: float) -> None:
+        key = self.__day_to_work_on.strftime("%Y-%m-%d")
+        booking = Booking()
+        if self.__data.get(key):
+            booking = self.__data[key]
+        booking.pause = pause
+        self.__data[key] = booking
+        self.__save_data()
+        self.print_table([key])
+
+    def __remove_booking(self, date: str) -> None:
+        key = datetime.datetime.fromisoformat(date).strftime("%Y-%m-%d")
+        if key in self.__data:
+            del self.__data[key]
+            self.__save_data()
+            print(f"Booking on {date} has been removed.")
+        else:
+            print(f"No booking found on {date}.")
 
     def print_table(self, keys: list[str]) -> None:
         table = [
@@ -150,9 +197,12 @@ class Keeper:
                 table.append(
                     [day.checkin_timestamp.strftime("%a"), key, day.checkin_timestamp.strftime("%H:%M"), day.checkout_timestamp.strftime("%H:%M") if day.checkout_timestamp else "", productive_time_value, day.pause, day.category.value, day.description])
             elif key in self.__data and self.__data[key].category:
-                table.append([datetime.datetime.fromisoformat(key).strftime("%a"), key, "---", "---", "---", "---", self.__data[key].category.value, "---"])
+                table.append([datetime.datetime.fromisoformat(key).strftime("%a"), key, "---", "---", self.__data[key].productive_time, "---", self.__data[key].category.value, "---" if not self.__data[key].description else self.__data[key].description])
             else:
-                table.append([datetime.datetime.fromisoformat(key).strftime("%a"), key, "---", "---", "---", "---", "---", "---"])
+                if datetime.datetime.fromisoformat(key).strftime("%a") == "Sat" or datetime.datetime.fromisoformat(key).strftime("%a") == "Sun":
+                    table.append([datetime.datetime.fromisoformat(key).strftime("%a"), key, "///", "///", "///", "///", "WEEKEND", "///"])
+                else:
+                    table.append([datetime.datetime.fromisoformat(key).strftime("%a"), key, "---", "---", "---", "---", "---", "---"])
 
         print(tabulate(table, tablefmt='fancy_grid'))
 
@@ -162,23 +212,26 @@ class Keeper:
         for day in range(days):
             d = datetime.datetime.today() - datetime.timedelta(days=day)
             key_list.append(d.strftime("%Y-%m-%d"))
-        return key_list
+        return key_list[::-1]
 
     @staticmethod
     def quarter_round(x: float, base: float = 0.25):
         return base * round(x / base)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process some integers.")
+def main():
+    parser = argparse.ArgumentParser(description="Keep track of your working hours")
     parser.add_argument("-c", "--category", type=str, help=f"Categorize day; possible values: {", ".join([c.value for c in BookingCategory])}")
     parser.add_argument("-d", "--date", type=str, help="Give a date to book on; format dd.mm.yyyy")
+    parser.add_argument("-dsc", "--description", type=str, help="Add a description for the booking")
     parser.add_argument("-i", "--checkin", nargs='?', action=CheckInOutAction, help="Check in now or at given time; format: hh:mm")
+    parser.add_argument("-l", "--list", nargs='?', const=7, type=int, help="List bookings for the given number of days (default: 7 days)")
     parser.add_argument("-o", "--checkout", nargs='?', action=CheckInOutAction, help="Check out now or at given time; format: hh:mm")
-    # parser.add_argument("-p", "--pause", type=float, help="Set pause time in hours")
-    parser.add_argument("-r", "--remove", type=str, help="Remove booking on given date")
+    parser.add_argument("-p", "--pause", type=float, help="Set pause time in hours")
+    parser.add_argument("-rm", "--remove", type=str, help="Remove booking on given date")
     parser.add_argument("-t", "--today", action="store_true", help="Print current day")
-    parser.add_argument("-w", "--week", default=False, action="store_true", help="Print current week")
-    parser.add_argument("-m", "--month", default=False, action="store_true", help="Print current month")
 
-    keeper = Keeper(parser.parse_args())
+    Keeper(parser.parse_args())
+
+if __name__ == "__main__":
+    main()
