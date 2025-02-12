@@ -8,7 +8,6 @@ import datetime
 import os
 import shutil
 from collections import OrderedDict
-from unicodedata import category
 
 import marshmallow_dataclass
 from tabulate import tabulate
