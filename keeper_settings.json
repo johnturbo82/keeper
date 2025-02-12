@@ -1,5 +1,8 @@
 {
     "keeper_file": "keeper.json",
     "contracted_working_hours": 8,
-    "default_pause_length": 0.5
+    "default_category": "MOBILE",
+    "default_pause_length": 0.5,
+    "backup": true,
+    "start_delta": 0.0
 }
