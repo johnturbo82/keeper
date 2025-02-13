@@ -151,7 +151,7 @@ class Keeper:
             booking.checkout_timestamp = booking_date
         if booking.checkin_timestamp and booking.checkout_timestamp:
             difference = booking.checkout_timestamp - booking.checkin_timestamp
-            booking.productive_time = self.quarter_round(difference.seconds / 60 / 60) - self.__default_pause_length
+            booking.productive_time = self.quarter_round(difference.seconds / 60 / 60) - booking.pause
             booking.delta = booking.productive_time - self.__contracted_working_hours
 
         self.__data[key] = booking
