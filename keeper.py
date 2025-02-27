@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import collections
 import dataclasses
+import datetime
 import enum
 import json
-import datetime
 import os
+import pathlib
 import shutil
-from collections import OrderedDict
 
 import marshmallow_dataclass
 from tabulate import tabulate
@@ -55,8 +56,10 @@ KeeperFileSchema = marshmallow_dataclass.class_schema(KeeperFile)
 
 class Keeper:
     def __init__(self, args) -> None:
+        """Initialize the Keeper."""
+        self.__storage_directory = pathlib.Path.home() / ".keeper"
         self.__load_config()
-        self.__keeper_file_path = self.__config.get("keeper_file", "keeper.json")
+        self.__keeper_file_path = self.__storage_directory /  "keeper.json"
         self.__contracted_working_hours = self.__config.get("contracted_working_hours", 8)
         self.__default_category = self.__config.get("default_category", BookingCategory.MOBILE)
         self.__default_pause_length = self.__config.get("default_pause_length", 0.5)
@@ -67,16 +70,18 @@ class Keeper:
 
     def __load_config(self) -> None:
         """Load the configuration file."""
-        if not os.path.isfile("keeper_settings.json"):
-            with open("keeper_settings.json", "w", encoding="utf-8") as f:
-                json.dump({"keeper_file": "keeper.json", "contracted_working_hours": 8, "default_category": "MOBILE", "default_pause_length": 0.5, "backup": True}, f, indent=4)
-        with open("keeper_settings.json", "r", encoding="utf-8") as f:
+        if not os.path.isdir(self.__storage_directory):
+            os.mkdir(self.__storage_directory)
+        if not os.path.isfile(self.__storage_directory / "keeper_settings.json"):
+            with open(self.__storage_directory / "keeper_settings.json", "w", encoding="utf-8") as f:
+                json.dump({"contracted_working_hours": 8, "default_category": "MOBILE", "default_pause_length": 0.5, "backup": True}, f, indent=4)
+        with open(self.__storage_directory / "keeper_settings.json", "r", encoding="utf-8") as f:
             self.__config = json.load(f)
 
     def __backup_keeper_file(self) -> None:
         """Create a backup of the keeper file."""
         if os.path.isfile(self.__keeper_file_path):
-            shutil.copy(self.__keeper_file_path, "keeper.json.backup")
+            shutil.copy(self.__keeper_file_path, self.__storage_directory / "keeper.json.backup")
 
     def __load_data(self) -> None:
         """Load the keeper file."""
@@ -89,7 +94,7 @@ class Keeper:
 
     def __save_data(self) -> None:
         """Save the keeper file."""
-        sorted_data = OrderedDict(sorted(self.__data.items()))
+        sorted_data = collections.OrderedDict(sorted(self.__data.items()))
         with open(self.__keeper_file_path, "w", encoding="utf-8") as f:
             json.dump(KeeperFileSchema().dump(KeeperFile(bookings=sorted_data)), f, indent=4)
 
@@ -189,6 +194,10 @@ class Keeper:
         key = self.__day_to_work_on.strftime("%Y-%m-%d")
         booking = self.__get_or_create_booking()
         booking.pause = pause
+        if booking.checkin_timestamp and booking.checkout_timestamp:
+            difference = booking.checkout_timestamp - booking.checkin_timestamp
+            booking.productive_time = self.quarter_round(difference.seconds / 60 / 60) - booking.pause
+            booking.delta = booking.productive_time - self.__contracted_working_hours
         self.__store_and_print(key, booking)
 
     def __remove_booking(self, date: str) -> None:
