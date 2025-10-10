@@ -1,5 +1,5 @@
-marshmallow==3.22.0
-marshmallow_dataclass==8.7.1
-pyinstaller==5.13.1
-pyzmq==26.2.0
-tabulate==0.8.9
+marshmallow
+marshmallow_dataclass
+pyinstaller
+pyzmq
+tabulate

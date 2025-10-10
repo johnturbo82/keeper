@@ -137,6 +137,24 @@ class Keeper:
         if args.pause is not None:
             parameter = True
             self.__set_pause(args.pause)
+        if args.statistics:
+            parameter = True
+            try:
+                year = int(args.statistics)
+                if year < 1900 or year > 3000:
+                    raise ValueError
+                keys = [key for key in self.__data if key.startswith(f"{year}-")]
+                if not keys:
+                    print(f"No data found for year {year}.")
+                else:
+                    self.__print_table(keys)
+                    balance = 0 + self.__start_delta
+                    for key in keys:
+                        balance += self.__data[key].delta
+                    print(f"Overall time balance for {year}: {balance} hours")
+                    self.__print_category_statistics(keys)
+            except ValueError:
+                print("Invalid year format; please use a four-digit year (e.g., 2023).")
         if args.remove:
             parameter = True
             self.__remove_booking(args.remove)
@@ -274,6 +292,33 @@ class Keeper:
         self.__save_data()
         self.__print_table([key])
 
+    def __print_category_statistics(self, keys: list[str]) -> None:
+        """Print category statistics for the given keys."""
+        category_counts = {}
+        category_productive_time = {}
+        
+        for category in BookingCategory:
+            category_counts[category] = 0
+            category_productive_time[category] = 0.0
+        
+        for key in keys:
+            if key in self.__data:
+                booking = self.__data[key]
+                category = booking.category
+                category_counts[category] += 1
+                category_productive_time[category] += booking.productive_time or 0.0
+        
+        print("\n--- Category Statistics ---")
+        table = [["CATEGORY", "COUNT", "TOTAL PRODUCTIVE TIME"]]
+        
+        for category in BookingCategory:
+            count = category_counts[category]
+            total_time = category_productive_time[category]
+            if count > 0:  # Only show categories that were used
+                table.append([category.value, str(count), f"{total_time:.2f} hours"])
+        
+        print(tabulate(table, tablefmt='fancy_grid'))
+
     @staticmethod
     def generate_day_keys(days: int) -> list[str]:
         """Generate the keys for the given number of days."""
@@ -301,6 +346,7 @@ def main() -> None:
     parser.add_argument("-o", "--checkout", nargs='?', action=CheckInOutAction, help="Check out now or at given time; format: hh:mm")
     parser.add_argument("-p", "--pause", type=float, help="Set pause time in hours")
     parser.add_argument("-rm", "--remove", type=str, help="Remove booking on given date")
+    parser.add_argument("-s", "--statistics", type=str, help="Show statistics for given year")
     parser.add_argument("-t", "--today", action="store_true", help="Print current day")
 
     Keeper(parser.parse_args())

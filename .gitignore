@@ -3,3 +3,4 @@
 /dist
 keeper.spec
 .DS_Store
+.venv
