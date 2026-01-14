@@ -4,3 +4,4 @@
 keeper.spec
 .DS_Store
 .venv
+__pycache__/

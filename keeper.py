@@ -15,6 +15,7 @@ from tabulate import tabulate
 
 
 class BookingCategory(str, enum.Enum):
+    EDUCATION = "EDUCATION"
     FLEXI = "FLEXI"
     HOLIDAY = "HOLIDAY"
     MOBILE = "MOBILE"
@@ -148,7 +149,7 @@ class Keeper:
                     print(f"No data found for year {year}.")
                 else:
                     self.__print_table(keys)
-                    balance = 0 + self.__start_delta
+                    balance = 0
                     for key in keys:
                         balance += self.__data[key].delta
                     print(f"Overall time balance for {year}: {balance} hours")
