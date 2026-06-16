@@ -125,6 +125,7 @@ class Keeper:
         if args.today:
             parameter = True
             self.__print_table(self.generate_day_keys(1))
+            self.__print_balance()
         if args.category:
             parameter = True
             try:
