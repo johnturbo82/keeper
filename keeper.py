@@ -22,6 +22,8 @@ class BookingCategory(str, enum.Enum):
     MOBILE = "MOBILE"
     OFFICE = "OFFICE"
     SICK = "SICK"
+    TIME_OFF = "TIME_OFF"
+    TIME_OFF_UNPAID = "TIME_OFF_UNPAID"
     VACATION = "VACATION"
 
 
@@ -208,7 +210,7 @@ class Keeper:
             booking.checkout_timestamp = None
             booking.pause = 0
             booking.delta = - self.__contracted_working_hours
-        if category == BookingCategory.HOLIDAY or category == BookingCategory.VACATION or category == BookingCategory.SICK:
+        if category in (BookingCategory.HOLIDAY, BookingCategory.VACATION, BookingCategory.SICK, BookingCategory.TIME_OFF, BookingCategory.TIME_OFF_UNPAID):
             booking.productive_time = 0
             booking.checkin_timestamp = None
             booking.checkout_timestamp = None
