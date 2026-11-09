@@ -151,16 +151,18 @@ class Keeper:
                 year = int(args.statistics)
                 if year < 1900 or year > 3000:
                     raise ValueError
-                keys = [key for key in self.__data if key.startswith(f"{year}-")]
+                keys = self.__generate_all_days_of_year(year)
                 if not keys:
                     print(f"No data found for year {year}.")
                 else:
                     self.__print_table(keys)
                     balance = 0
                     for key in keys:
-                        balance += self.__data[key].delta
+                        if key in self.__data:
+                            balance += self.__data[key].delta
                     print(f"Overall time balance for {year}: {balance} hours")
                     self.__print_category_statistics(keys)
+                    self.__print_uncategorized_workdays(year)
             except ValueError:
                 print("Invalid year format; please use a four-digit year (e.g., 2023).")
         if args.remove:
@@ -352,6 +354,42 @@ class Keeper:
             d = datetime.datetime.today() - datetime.timedelta(days=day)
             key_list.append(d.strftime("%Y-%m-%d"))
         return key_list[::-1]
+
+    def __generate_all_days_of_year(self, year: int) -> list[str]:
+        """Generate all days of a given year."""
+        key_list: list[str] = []
+        start_date = datetime.datetime(year, 1, 1)
+        end_date = datetime.datetime(year, 12, 31)
+        current_date = start_date
+        while current_date <= end_date:
+            key_list.append(current_date.strftime("%Y-%m-%d"))
+            current_date += datetime.timedelta(days=1)
+        return key_list
+
+    def __print_uncategorized_workdays(self, year: int) -> None:
+        """Print workdays that have no category and no check-in/out data."""
+        uncategorized_days = []
+        
+        for day_key in self.__generate_all_days_of_year(year):
+            day_date = datetime.datetime.fromisoformat(day_key)
+            # Skip weekends
+            if day_date.weekday() >= 5:
+                continue
+            
+            # Check if day exists and has no category (and no checkin/checkout)
+            if day_key not in self.__data:
+                uncategorized_days.append(day_key)
+            elif not self.__data[day_key].category or self.__data[day_key].category == BookingCategory.MOBILE:
+                if not self.__data[day_key].checkin_timestamp and not self.__data[day_key].checkout_timestamp:
+                    uncategorized_days.append(day_key)
+        
+        if uncategorized_days:
+            print("\n--- Workdays without category or booking ---")
+            table = [["DATE", "DAY"]]
+            for day_key in uncategorized_days:
+                day_date = datetime.datetime.fromisoformat(day_key)
+                table.append([day_key, day_date.strftime("%a")])
+            print(tabulate(table, tablefmt='fancy_grid'))
 
     @staticmethod
     def quarter_round(x: float, base: float = 0.25):
